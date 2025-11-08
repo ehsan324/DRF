@@ -1,0 +1,24 @@
+from django.db import models
+from django.contrib.auth.models import User
+
+
+class TaskManager(models.Manager):
+    def completed(self):
+        return self.filter(done=True)
+
+    def high_priority(self):
+        return self.filter(priority__gte=3)
+
+
+class Task(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tasks')
+    title = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    priority = models.IntegerField(default=1)
+    due_date = models.DateField(null=True, blank=True)
+    done = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+    def __str__(self):
+        return f"{self.title} (priority={self.priority}) - {self.user.username}"
