@@ -1,5 +1,5 @@
-from django.contrib.auth import authenticate, login
-from django.views.decorators.csrf import csrf_exempt
+from rest_framework_simplejwt.authentication import JWTAuthentication
+
 from rest_framework.response import Response
 from .serializers import TaskSerializer
 from .models import Task
@@ -36,11 +36,18 @@ def LoginView(request):
 
 class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
-    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
 
     def get_queryset(self):
         user = self.request.user
-        qs = Task.objects.all() if user.is_staff else Task.objects.filter(user=self.request.user)
+        if user.is_staff:
+            qs = Task.objects.all()
+        elif user.groups.filter(name='manager').exists():
+            qs = Task.objects.all()
+        else:
+            qs = Task.objects.filter(user=user)
+
         done = self.request.GET.get('done')
         search = self.request.GET.get('search')
         if done is not None:
@@ -53,12 +60,20 @@ class TaskViewSet(viewsets.ModelViewSet):
         return qs
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        task = serializer.save(user=self.request.user)
+        task.current_user = self.request.user
+        task.save()
+
+    def perform_update(self, serializer):
+        task = serializer.save()
+        task.current_user = self.request.user
+        task.save()
 
     @action(detail=True, methods=['post'])
     def mark_done(self, request, pk=None):
         task = self.get_object()
         task.done = True
+        task.current_user = self.request.user
         task.save()
         return Response({'status': 'success',
                          'message': 'Task marked as done',
@@ -66,8 +81,16 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['delete'])
     def delete_all_done(self, request, pk=None):
+        user = request.user
         with transaction.atomic():
+            tasks_to_delete = Task.objects.filter(done=True)
+            for task in tasks_to_delete:
+                task.current_user = user
+                task.save()
             deleted_count, _ = Task.objects.filter(done=True).delete()
+
+        logger.info(f"🧹 BULK DELETE - User: {user.username}, Deleted {deleted_count} done tasks")
+
         return Response({'status': 'success',
                          'deleted_count': deleted_count,
                          'message': 'Task deleted successfully'})
@@ -85,6 +108,7 @@ class TaskViewSet(viewsets.ModelViewSet):
             'username': user.username,
             'task_summery': data
         })
+
 
 class CompletedTaskViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = TaskSerializer
