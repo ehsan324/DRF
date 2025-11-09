@@ -8,6 +8,7 @@ from rest_framework.decorators import action, api_view
 from django.db import transaction
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from .permissions import IsOwnerOrAdmin
+from django.db.models import Case, When, IntegerField, Count
 
 
 @api_view(['POST'])
@@ -71,6 +72,19 @@ class TaskViewSet(viewsets.ModelViewSet):
                          'deleted_count': deleted_count,
                          'message': 'Task deleted successfully'})
 
+    @action(detail=False, methods=['get'])
+    def my_stats(self, request):
+        user = self.request.user
+        tasks = Task.objects.filter(user=user)
+        data = {
+            'total': tasks.count(),
+            'done': tasks.filter(done=True).count(),
+            'pending': tasks.filter(done=False).count(),
+        }
+        return Response({
+            'username': user.username,
+            'task_summery': data
+        })
 
 class CompletedTaskViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = TaskSerializer
