@@ -13,10 +13,10 @@ class RoleBasedPermission(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         user = request.user
 
-        if user.is_staff:
+        if user.is_superuser:
             return True
 
         if user.groups.filter(name='manager').exists():
-            return request.method in permissions.SAFE_METHODS
+            return True
 
         return obj.user == user

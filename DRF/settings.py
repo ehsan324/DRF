@@ -125,6 +125,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    'EXCEPTION_HANDLER': 'DRF.exceptions.custom_exception_handler',  # این خط را اضافه کن
+
 }
 
 SIMPLE_JWT = {

@@ -3,41 +3,20 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.response import Response
 from .serializers import TaskSerializer
 from .models import Task
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view
 from django.db import transaction
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
-from .permissions import IsOwnerOrAdmin
-from django.db.models import Case, When, IntegerField, Count
+from .permissions import RoleBasedPermission
+import logging
 
-
-@api_view(['POST'])
-@csrf_exempt
-def LoginView(request):
-    username = request.data.get('username')
-    password = request.data.get('password')
-
-    user = authenticate(username=username, password=password)
-
-    if user is not None:
-        login(request, user)
-        return Response({
-            'status': "success",
-            'message': 'Successfully logged in.',
-            'user_id': user.id,
-            'username': user.username
-        }, status=status.HTTP_200_OK)
-    else:
-        return Response({
-            'status': "error",
-            'message': 'Invalid credentials.',
-        }, status=status.HTTP_401_UNAUTHORIZED)
-
+logger = logging.getLogger(__name__)
 
 class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated, RoleBasedPermission]
+
 
     def get_queryset(self):
         user = self.request.user

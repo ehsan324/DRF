@@ -14,5 +14,5 @@ def log_task_change(sender, instance, created, **kwargs):
 @receiver(post_delete, sender=Task)
 def log_task_delete(sender, instance, **kwargs):
     user = instance.user.username if instance.user else 'Unknown'
-    logger.info(f"Task {instance.title} {action} by {user}")
+    logger.info(f"Task {instance.title} by {user}")
 
