@@ -1,6 +1,7 @@
 from rest_framework_simplejwt.authentication import JWTAuthentication
-
 from rest_framework.response import Response
+from rest_framework import filters
+from .pagination import SmallPagination
 from .serializers import TaskSerializer
 from .models import Task
 from rest_framework import viewsets, status
@@ -8,6 +9,8 @@ from rest_framework.decorators import action, api_view
 from django.db import transaction
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from .permissions import RoleBasedPermission
+from .filters import  TaskFilter
+from django_filters.rest_framework import DjangoFilterBackend
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,7 +19,19 @@ class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated, RoleBasedPermission]
+    pagination_class = SmallPagination
 
+    filter_backends = (DjangoFilterBackend,
+                       filters.SearchFilter,
+                       filters.OrderingFilter,)
+
+    filterset_class = TaskFilter
+
+    search_fields = ["title", "description"]
+
+    ordering_fields = ["-priority", "due_date"]
+
+    ordering = ("-priority")
 
     def get_queryset(self):
         user = self.request.user
@@ -27,16 +42,6 @@ class TaskViewSet(viewsets.ModelViewSet):
         else:
             qs = Task.objects.filter(user=user)
 
-        done = self.request.GET.get('done')
-        search = self.request.GET.get('search')
-        if done is not None:
-            if done.lower() == 'true':
-                qs = qs.filter(done=True)
-            elif done.lower() == 'false':
-                qs = qs.filter(done=False)
-        if search:
-            qs = qs.filter(title__icontains=search)
-        return qs
 
     def perform_create(self, serializer):
         task = serializer.save(user=self.request.user)
