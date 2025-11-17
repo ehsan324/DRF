@@ -9,10 +9,10 @@ logger = logging.getLogger(__name__)
 
 
 class TaskFilter(django_filters.FilterSet):
-    min_due = django_filters.DateFilter(field_name='due_date', lookup_expr='gte')
-    max_due = django_filters.DateFilter(field_name='due_date', lookup_expr='lte')
-
     urgent = django_filters.BooleanFilter(method='filter_urgent')
+    has_due_date = django_filters.BooleanFilter(method='filter_has_due_date')
+
+
 
     class Meta:
         model = Task
@@ -30,4 +30,11 @@ class TaskFilter(django_filters.FilterSet):
             return queryset.filter(due_date__lte=limit,
                                    done=False,
                                    due_date__isnull=False)
+        return queryset
+
+    def filter_has_due_date(self, queryset, name, value):
+        if value is True:
+            return queryset.exclude(due_date__isnull=True)
+        if value is False:
+            return queryset.filter(due_date__isnull=True)
         return queryset
