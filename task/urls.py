@@ -1,5 +1,5 @@
 from rest_framework.routers import DefaultRouter
-from .views import TaskViewSet, CompletedTaskViewSet
+from .views import TaskViewSet, CompletedTaskViewSet, ProjectViewSet
 from django.urls import include, path
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -8,6 +8,7 @@ from rest_framework_simplejwt.views import (
 
 router = DefaultRouter()
 router.register(r'tasks', TaskViewSet, basename='task')
+router.register(r'projects', ProjectViewSet, basename='project')
 router.register(r'completed', CompletedTaskViewSet, basename='completed')
 
 urlpatterns = [

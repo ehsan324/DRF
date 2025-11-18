@@ -1,29 +1,42 @@
 import django_filters
+from django.utils import timezone
 from .models import Task
+from datetime import timedelta
+
+# logging
+import logging
+logger = logging.getLogger(__name__)
+
 
 class TaskFilter(django_filters.FilterSet):
-    min_due = django_filters.DateFilter(field_name='due_date', lookup_expr='gte')
-    max_due = django_filters.DateFilter(field_name='due_date', lookup_expr='lte')
-    title_startwith_a = django_filters.BooleanFilter(method="filter_title_startwith_a")
-    is_overdue = django_filters.BooleanFilter(method="filter_overdue")
+    urgent = django_filters.BooleanFilter(method='filter_urgent')
+    has_due_date = django_filters.BooleanFilter(method='filter_has_due_date')
 
-    def filter_title_startwith_a(self, queryset, name, value):
-        if value:
-            return queryset.filter(title__istartswith="a")
-        else:
-            return queryset
 
-    def filter_overdue(self, queryset, name, value):
-        if value:
-            return queryset.filter(done=False, due_date__lte=timezone.now())
-        return queryset
+
 
     class Meta:
         model = Task
         fields = {
             "project": ["exact"],
             "done": ["exact"],
+            "title": ["icontains"],
             "description": ["icontains"],
-            "title": ["icontains",],
-
         }
+
+    def filter_urgent(self, queryset, name, value):
+        if value:
+            now = timezone.now()
+            limit = now + timedelta(hours=48)
+            return queryset.filter(due_date__lte=limit,
+                                   done=False,
+                                   due_date__isnull=False)
+        return queryset
+
+    def filter_has_due_date(self, queryset, name, value):
+        if value is True:
+            return queryset.exclude(due_date__isnull=True)
+        if value is False:
+            return queryset.filter(due_date__isnull=True)
+        return queryset
+
