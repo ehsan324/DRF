@@ -2,6 +2,8 @@ import django_filters
 from django.utils import timezone
 from .models import Task
 from datetime import timedelta
+from django.db.models import Q
+
 
 # logging
 import logging
@@ -9,8 +11,13 @@ logger = logging.getLogger(__name__)
 
 
 class TaskFilter(django_filters.FilterSet):
+
+    due_after = django_filters.BooleanFilter(field_name='due_date', lookup_expr='gte')
+    due_before = django_filters.BooleanFilter(field_name='due_date', lookup_expr='lte')
     urgent = django_filters.BooleanFilter(method='filter_urgent')
     has_due_date = django_filters.BooleanFilter(method='filter_has_due_date')
+
+    q = django_filters.CharFilter(method='filter_q')
 
 
 
@@ -22,6 +29,7 @@ class TaskFilter(django_filters.FilterSet):
             "done": ["exact"],
             "title": ["icontains"],
             "description": ["icontains"],
+
         }
 
     def filter_urgent(self, queryset, name, value):
@@ -39,4 +47,13 @@ class TaskFilter(django_filters.FilterSet):
         if value is False:
             return queryset.filter(due_date__isnull=True)
         return queryset
+
+    def filter_q(self, queryset, name, value):
+        if not value:
+            return queryset
+        return queryset.filter(
+            Q(title__icontains=value) |
+            Q(description__icontains=value) |
+            Q(due_date__icontains=value)
+        )
 
