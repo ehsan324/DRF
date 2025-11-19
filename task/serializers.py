@@ -3,19 +3,27 @@ from .models import Task, Project
 from django.utils import timezone
 from drf_writable_nested import WritableNestedModelSerializer
 
+class TaskListSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(source='user.username', read_only=True)
+    project = serializers.CharField(source='project.name', read_only=True)
 
-class ProjectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Task
+        fields = ('id', 'user', 'project', 'title', 'done', 'due_date')
+
+class ProjectSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
-        fields = ['id', 'name', 'description', 'created_at']
+        fields = ['id', 'name']
 
-class TaskSerializer(WritableNestedModelSerializer):
-    project = ProjectSerializer()
+class TaskDetailSerializer(WritableNestedModelSerializer):
+    user = serializers.CharField(source='user.username', read_only=True)
+    project = ProjectSimpleSerializer()
     duration = serializers.SerializerMethodField()
 
     class Meta:
         model = Task
-        fields = ['id', 'title', 'description', 'priority', 'done', 'created_at', 'due_date', 'project', 'duration']
+        fields = ['id', 'user', 'project', 'title', 'description', 'priority', 'done', 'created_at', 'due_date', 'duration']
 
     def get_duration(self, obj):
         if obj.due_date and obj.done:

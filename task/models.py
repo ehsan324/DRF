@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 
 
 class Project(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='users')
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -22,11 +23,11 @@ class TaskManager(models.Manager):
 class Task(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tasks')
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='tasks')
-    title = models.CharField(max_length=100)
+    title = models.CharField(db_index=True, max_length=100)
     description = models.TextField(blank=True)
     priority = models.IntegerField(default=1, validators=[MinValueValidator(1), MaxValueValidator(10)])
     due_date = models.DateField(null=True, blank=True)
-    done = models.BooleanField(default=False)
+    done = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
 
